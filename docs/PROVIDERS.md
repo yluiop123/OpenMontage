@@ -334,6 +334,7 @@ Official references: [Seedance model list](https://www.volcengine.com/docs/82379
 #### What it's best for
 
 - Chinese-language image generation with strong prompt understanding (Qwen-Image)
+- Current Qwen-Image 3.0 / 2.1 models (`qwen-image-3.0-pro`, `qwen-image-3.0`, `qwen-image-2.1-pro`, `qwen-image-2.1-turbo`), with the 2.0 series kept as legacy
 - Natural Mandarin narration (Qwen-TTS, Cherry voice)
 - Voice cloning from a 10-20 s reference recording (`dashscope_voice_clone`), then narration through the cloned `voice_id`
 - Word-level timestamp transcription for subtitle alignment (Qwen-ASR filetrans)
@@ -345,14 +346,24 @@ DashScope's `/compatible-mode/v1/` only supports `/chat/completions` and `/embed
 
 Voice clones are created on `services/audio/tts/customization` (`model: voice-enrollment`, actions `create_voice` / `query_voice` / `list_voice` / `delete_voice`) and spoken through `services/audio/tts/SpeechSynthesizer`. A clone is permanently bound to the `target_model` it was enrolled with; `dashscope_tts` reads that model from the `voice_id` prefix so callers only pass `voice_id`. Local reference audio is inlined as a Base64 Data URI — no public URL needed. Enrollment is free; synthesis bills per input character or per token, depending on the model.
 
+Qwen-Image spans three parameter generations. The 2.1 and 3.0 series accept `prompt_extend_mode` (`direct` / `agent`), `enable_thinking` (requires `prompt_extend=true`), and `size="auto"`; the 2.1 series does **not** accept `negative_prompt` (the 3.0 and legacy 2.0 series do). `dashscope_image` gates these automatically, and defaults to `qwen-image-2.0-pro` for byte-compatible behavior. The 2.1/3.0 models also support reference-image editing (2.1 up to 10 images, 3.0 up to 3) and 2.1 can emit an alpha channel, but the tool currently exposes text-to-image only.
+
 The ASR tool (`qwen3-asr-flash-filetrans`) uses an async submit-poll pattern. Audio must be at a publicly accessible URL (local files are not supported). Word timestamps are in milliseconds, normalized to seconds by the tool.
 
 #### Pricing
 
 | Model | Price |
 |------|-------|
-| `qwen-image-2.0-pro` | ~$0.02 per image (check console for current rates) |
-| `qwen3-tts-flash` | $0.114682 per 10k characters (Beijing list price; each CJK ideograph counts as 2) |
+| `qwen-image-3.0-pro` | $0.034380 (1k) / $0.068761 (2k) per image |
+| `qwen-image-3.0` | $0.024754 per image |
+| `qwen-image-2.1-pro` | $0.035333 per image |
+| `qwen-image-2.1-turbo` | $0.014133 per image |
+| `qwen-image-2.0-pro` | $0.071676 per image |
+| `qwen-image-2.0` | $0.028671 per image |
+| `wan2.7-image` | $0.027504 per image |
+| `z-image-turbo` | $0.01434, or $0.02868 with `prompt_extend` |
+| `qwen-image-max` | Not on the published price list → `cost_usd: None` with `cost_status: "unquoted"` |
+| `qwen3-tts-flash` | $0.114682 per 10k characters |
 | `qwen-audio-3.0-tts-flash` | $0.137521 per 10k characters |
 | `qwen-audio-3.0-tts-plus` | $0.19253 per 10k characters |
 | `qwen-audio-3.1-tts-plus` | $0.20 per 10k characters |
@@ -363,6 +374,8 @@ The ASR tool (`qwen3-asr-flash-filetrans`) uses an async submit-poll pattern. Au
 | `qwen-audio-3.1-tts-flash` | $0.212/1M input tokens + $1.696/1M output tokens; cost is derived from reported `usage` |
 | `qwen3-tts-instruct-flash` / `qwen-tts-2025-05-22` | No published tariff → `cost_usd: None` with `cost_status: "unquoted"` |
 | `qwen3-asr-flash-filetrans` | Per-minute billing (check console) |
+
+Prices are official QwenCloud list prices in USD for **China North 2 (Beijing)** — the region the default `dashscope.aliyuncs.com` endpoint bills in; other regions differ. Images bill per **generated** image, by output tier (any side over 1024 px is 2k), so failed choices are not charged, and `size="auto"` cannot be priced before the call (`cost_usd: None`). Speech bills the input text per 10,000 characters, counting each CJK ideograph as two.
 
 ---
 
